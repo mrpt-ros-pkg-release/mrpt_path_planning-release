@@ -1,0 +1,9 @@
+<!---
+Template mainpage.md, to which the README.md will be appended during "make"
+of Sphinx docs.
+-->
+
+\mainpage Self-driving A*-based C++ library
+
+- [Git repository](https://github.com/jlblancoc/selfdriving)
+- \ref overview_page

@@ -1,0 +1,61 @@
+# Based on GTSAM file (by @ProfFan)
+name: CI Linux
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: ${{ matrix.name }} ${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+
+    env:
+      CTEST_OUTPUT_ON_FAILURE: ON
+      CTEST_PARALLEL_LEVEL: 1
+      CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
+      VERBOSE: 1  # to show all cmake scripts debug info
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Github Actions requires a single row to be added to the build matrix.
+        # See https://help.github.com/en/articles/workflow-syntax-for-github-actions.
+        name: [
+          ubuntu-latest-gcc
+        ]
+
+        build_type: [ Release ]
+        include:
+          - name: ubuntu-latest-gcc
+            os: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+
+      - name: Git submodule
+        run: |
+          git submodule sync
+          git submodule update --init --recursive
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get -y update
+          
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository  ppa:joseluisblancoc/mrpt -y
+          sudo apt-get update -qq
+
+          sudo apt-get -y upgrade
+          sudo apt install -qq -y cmake build-essential libmrpt-dev
+
+      - name: CMake configure
+        run: |
+          cmake -DCMAKE_VERBOSE_MAKEFILE=ON \
+                -H. -Bbuild
+
+      - name: Unit tests
+        run: |
+
+      - name: Build all
+        run: |
+          make -C build
