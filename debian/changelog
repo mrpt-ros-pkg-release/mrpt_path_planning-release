@@ -1,0 +1,8 @@
+ros-noetic-mrpt-path-planning (0.1.0-1focal) focal; urgency=high
+
+  * First release since initial development in May 2019.
+  * Contributors: Jose Luis Blanco-Claraco, Shravan S Rai
+
+ -- Jose-Luis Blanco-Claraco <joseluisblancoc@gmail.com>  Tue, 13 Jun 2023 22:00:00 -0000
+
+
