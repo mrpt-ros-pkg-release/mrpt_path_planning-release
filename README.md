@@ -14,13 +14,13 @@ for vehicles with arbitrary shape and realistic kinematics and dynamics.
 | ROS 1 Noetic (u20.04) | [![Build Status](https://build.ros.org/job/Ndev__mrpt_path_planning__ubuntu_focal_amd64/badge/icon)](https://build.ros.org/job/Ndev__mrpt_path_planning__ubuntu_focal_amd64/) | [![Build Status](https://build.ros.org/job/Nbin_uF64__mrpt_path_planning__ubuntu_focal_amd64__binary/badge/icon)](https://build.ros.org/job/Nbin_uF64__mrpt_path_planning__ubuntu_focal_amd64__binary/) | [![Version](https://img.shields.io/ros/v/noetic/mrpt_path_planning)](https://index.ros.org/search/?term=mrpt_path_planning) |
 | ROS 2 Humble (u22.04) | [![Build Status](https://build.ros2.org/job/Hdev__mrpt_path_planning__ubuntu_jammy_amd64/badge/icon)](https://build.ros2.org/job/Hdev__mrpt_path_planning__ubuntu_jammy_amd64/) | [![Build Status](https://build.ros2.org/job/Hbin_uJ64__mrpt_path_planning__ubuntu_jammy_amd64__binary/badge/icon)](https://build.ros2.org/job/Hbin_uJ64__mrpt_path_planning__ubuntu_jammy_amd64__binary/) | [![Version](https://img.shields.io/ros/v/humble/mrpt_path_planning)](https://index.ros.org/search/?term=mrpt_path_planning) |
 | ROS 2 Iron (u22.04) | [![Build Status](https://build.ros2.org/job/Idev__mrpt_path_planning__ubuntu_jammy_amd64/badge/icon)](https://build.ros2.org/job/Idev__mrpt_path_planning__ubuntu_jammy_amd64/) | [![Build Status](https://build.ros2.org/job/Ibin_uJ64__mrpt_path_planning__ubuntu_jammy_amd64__binary/badge/icon)](https://build.ros2.org/job/Ibin_uJ64__mrpt_path_planning__ubuntu_jammy_amd64__binary/) | [![Version](https://img.shields.io/ros/v/iron/mrpt_path_planning)](https://index.ros.org/search/?term=mrpt_path_planning) |
-| ROS 2 Rolling (u22.04) | [![Build Status](https://build.ros2.org/job/Rdev__mrpt_path_planning__ubuntu_jammy_amd64/badge/icon)](https://build.ros2.org/job/Rdev__mrpt_path_planning__ubuntu_jammy_amd64/) | [![Build Status](https://build.ros2.org/job/Hbin_uJ64__mrpt_path_planning__ubuntu_jammy_amd64__binary/badge/icon)](https://build.ros2.org/job/Hbin_uJ64__mrpt_path_planning__ubuntu_jammy_amd64__binary/) | [![Version](https://img.shields.io/ros/v/rolling/mrpt_path_planning)](https://index.ros.org/search/?term=mrpt_path_planning) |
+| ROS 2 Rolling (u24.04) | [![Build Status](https://build.ros2.org/job/Rdev__mrpt_path_planning__ubuntu_noble_amd64/badge/icon)](https://build.ros2.org/job/Rdev__mrpt_path_planning__ubuntu_noble_amd64/) | [![Build Status](https://build.ros2.org/job/Rbin_uN64__mrpt_path_planning__ubuntu_noble_amd64__binary/badge/icon)](https://build.ros2.org/job/Rbin_uN64__mrpt_path_planning__ubuntu_noble_amd64__binary/) | [![Version](https://img.shields.io/ros/v/rolling/mrpt_path_planning)](https://index.ros.org/search/?term=mrpt_path_planning) |
 
 
 
 ## Build requisites
 
-- [MRPT](https://github.com/MRPT/mrpt/) (>=2.3.2)
+- [MRPT](https://github.com/MRPT/mrpt/) (>=2.12.0)
 - [mvsim](https://github.com/MRPT/mvsim/) (optional to run the live control simulator).
 
 In Ubuntu 22.04 or newer, installed it with:
@@ -32,7 +32,7 @@ sudo apt install libmrpt-dev
 For older versions of Ubuntu: 
 
 ```
-# MRPT >=2.3.2, for now from this PPA (or build from sources if preferred):
+# MRPT from this PPA (or build from sources if preferred, or from ROS package `mrpt2`):
 sudo add-apt-repository ppa:joseluisblancoc/mrpt
 sudo apt update
 sudo apt install libmrpt-dev
