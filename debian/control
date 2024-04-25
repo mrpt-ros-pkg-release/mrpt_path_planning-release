@@ -1,0 +1,13 @@
+Source: ros-noetic-mrpt-path-planning
+Section: misc
+Priority: optional
+Maintainer: Jose-Luis Blanco-Claraco <joseluisblancoc@gmail.com>
+Build-Depends: debhelper (>= 9.0.0), cmake, ros-noetic-mrpt2, ros-noetic-mvsim
+Homepage: https://github.com/MRPT/mrpt_path_planning
+Standards-Version: 3.9.2
+
+Package: ros-noetic-mrpt-path-planning
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-noetic-mrpt2, ros-noetic-mvsim
+Description: Path planning and navigation algorithms for robots/vehicles moving on planar environments.
+ This library builds upon mrpt-nav and the theory behind PTGs to generate libraries of &quot;motion primitives&quot; for vehicles with arbitrary shape and realistic kinematics and dynamics.
