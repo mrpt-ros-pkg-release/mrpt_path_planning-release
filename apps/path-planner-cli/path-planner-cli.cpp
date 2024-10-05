@@ -50,6 +50,11 @@ TCLAP::ValueArg<float> argObstaclesGridResolution(
     "pixel in meters.",
     false, 0.05, "0.05", cmd);
 
+TCLAP::ValueArg<float> arg_interpolation_period(
+    "", "interpolarion-period",
+    "Interpolation (and animation) time step between keyframes [s].", false,
+    0.25, "0.25", cmd);
+
 TCLAP::ValueArg<std::string> arg_ptgs_file(
     "c", "ptg-config", "Input .ini file with PTG definitions.", true, "",
     "ptgs.ini", cmd);
@@ -80,7 +85,7 @@ TCLAP::ValueArg<std::string> arg_goal_pose(
     "\"[x y phi_deg]\" or \"[x y]\"", cmd);
 
 TCLAP::ValueArg<double> argBBoxMargin(
-    "", "bbox-margin", "Margin to add to the start-goal bbox poses", false, 1.0,
+    "", "bbox-margin", "Margin to add to the start-goal bbox poses", false, 2.0,
     "A distance [meters]", cmd);
 
 TCLAP::ValueArg<std::string> arg_goal_vel(
@@ -117,6 +122,10 @@ TCLAP::ValueArg<std::string> arg_waypointsParams(
 TCLAP::SwitchArg arg_showTree(
     "", "show-tree",
     "Shows the whole search tree instead of just the best path", cmd);
+
+TCLAP::SwitchArg arg_ignoreObstaclesBbox(
+    "", "ignore-obstacles-bbox",
+    "Ignore obstacles for estimating the problem world bounding box", cmd);
 
 TCLAP::SwitchArg arg_noRefine(
     "", "no-refine", "Skips the post-plan refine stage", cmd);
@@ -207,7 +216,17 @@ static void do_plan_path()
 
     pi.obstacles.emplace_back(obs);
 
-    auto bbox = obs->obstacles()->boundingBox();
+    mrpt::math::TBoundingBoxf bbox;
+
+    if (!arg_ignoreObstaclesBbox.isSet())
+    {
+        bbox = obs->obstacles()->boundingBox();
+    }
+    else
+    {
+        // This will ensure the next updateWithPoint() will set the bbox:
+        bbox = mrpt::math::TBoundingBoxf::PlusMinusInfinity();
+    }
 
     // Make sure goal and start are within bbox:
     {
@@ -300,7 +319,8 @@ static void do_plan_path()
     }
 
     // Insert custom progress callback:
-    planner->progressCallback_ = [](const mpp::ProgressCallbackData& pcd) {
+    planner->progressCallback_ = [](const mpp::ProgressCallbackData& pcd)
+    {
         std::cout << "[progressCallback] bestCostFromStart: "
                   << pcd.bestCostFromStart
                   << " bestCostToGoal: " << pcd.bestCostToGoal
@@ -308,8 +328,12 @@ static void do_plan_path()
     };
 
     // PTGs config file:
+    std::cout << "[PTGs] Initializing PTGs..." << std::endl;
+
     mrpt::config::CConfigFile cfg(arg_ptgs_file.getValue());
     pi.ptgs.initFromConfigFile(cfg, arg_config_file_section.getValue());
+
+    std::cout << "[PTGs] Done." << std::endl;
 
     // ==================================================
     // ACTUAL PATH PLANNING
@@ -365,7 +389,17 @@ static void do_plan_path()
         {
             const auto t0 = mrpt::Clock::nowDouble();
 
-            traj = mpp::plan_to_trajectory(pathEdges, pi.ptgs);
+            const double interpPeriod = arg_interpolation_period.getValue();
+
+            traj = mpp::plan_to_trajectory(pathEdges, pi.ptgs, interpPeriod);
+
+            // Note: trajectory is in local frame of reference
+            // of plan.originalInput.stateStart.pose
+            // so, correct that relative pose so we keep everything in global
+            // frame:
+            const auto& startPose = plan.originalInput.stateStart.pose;
+            for (auto& kv : *traj)
+                kv.second.state.pose = startPose + kv.second.state.pose;
 
             const auto dt = mrpt::Clock::nowDouble() - t0;
 
