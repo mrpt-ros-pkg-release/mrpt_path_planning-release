@@ -5,6 +5,7 @@
  * ------------------------------------------------------------------------- */
 
 #include <mpp/algos/render_tree.h>
+#include <mpp/algos/trajectories.h>
 #include <mpp/algos/viz.h>
 #include <mrpt/gui/CDisplayWindow3D.h>
 #include <mrpt/opengl/CCylinder.h>
@@ -51,6 +52,10 @@ void mpp::viz_nav_plan(
     win->setCameraElevationDeg(90);
     win->setCameraProjective(false);
 
+    // Look at path start:
+    const auto& start = plan.originalInput.stateStart.pose;
+    win->setCameraPointingToPoint(start.x, start.y, .0f);
+
     // Render:
     win->updateWindow();
 
@@ -59,10 +64,7 @@ void mpp::viz_nav_plan(
         // Wait:
         win->waitForKey();
     }
-    else
-    {
-        nonmodal_wins.push_back(win);
-    }
+    else { nonmodal_wins.push_back(win); }
 
     MRPT_END
 }
@@ -102,11 +104,10 @@ void mpp::viz_nav_plan_animation(
         *glRobotShape);
     glRobotShape->setColor_u8(0xff, 0x00, 0x00, 0xff);  // RGB+A
     glVeh->insert(glRobotShape);
+    auto glVehCorner = mrpt::opengl::stock_objects::CornerXYZ(0.3);
+    glVeh->insert(glVehCorner);
 
     glVehFrame->insert(glVeh);
-
-    // The path is referenced to the path planning "start pose", account for it:
-    glVehFrame->setPose(plan.originalInput.stateStart.pose);
 
     // Build opengl scene:
     {
@@ -127,6 +128,9 @@ void mpp::viz_nav_plan_animation(
     win->setCameraAzimuthDeg(-90);
     win->setCameraElevationDeg(90);
     win->setCameraProjective(false);
+    // Look at path start:
+    const auto& start = plan.originalInput.stateStart.pose;
+    win->setCameraPointingToPoint(start.x, start.y, .0f);
 
     // Render:
     win->updateWindow();

@@ -14,6 +14,7 @@
 #include <mpp/ptgs/SpeedTrimmablePTG.h>
 #include <mrpt/math/wrap2pi.h>
 #include <mrpt/opengl/COpenGLScene.h>
+#include <mrpt/version.h>
 
 #include <iostream>
 #include <unordered_set>
@@ -122,18 +123,24 @@ PlannerOutput TPS_Astar::plan(const PlannerInput& in)
     // obstacles (TODO: dynamic over future time?):
     std::vector<mrpt::maps::CPointsMap::Ptr> obstaclePoints;
     for (const auto& os : in.obstacles)
-        if (os) obstaclePoints.emplace_back(os->obstacles());
+    {
+        if (!os) continue;  // should never happen?
+
+        // apply clipping for efficiency:
+        // (z is arbitrary and ignored inside)
+        os->apply_clipping_box(mrpt::math::TBoundingBox(
+            {in.worldBboxMin.x, in.worldBboxMin.y, -1.0},
+            {in.worldBboxMax.x, in.worldBboxMax.y, 1.0}));
+
+        // Get obstacles:
+        obstaclePoints.emplace_back(os->obstacles());
+    }
 
     //  2  |  E T ← ∅         # Tree edges
     // ------------------------------------------------------------------
     tree.edges_to_children.clear();
 
-    grid_.setSize(
-        in.worldBboxMin.x, in.worldBboxMax.x,  // x
-        in.worldBboxMin.y, in.worldBboxMax.y,  // y
-        params_.grid_resolution_xy, params_.grid_resolution_yaw,  // res
-        in.worldBboxMin.phi, in.worldBboxMax.phi  // phi / yaw
-    );
+    grid_.clear();
 
     // ----------------------------------------
     //
@@ -250,7 +257,7 @@ PlannerOutput TPS_Astar::plan(const PlannerInput& in)
         // for each neighbor of current:
         const auto neighbors = find_feasible_paths_to_neighbors(
             current, in.ptgs, in.stateGoal, obstaclePoints, MAX_XY_DIST,
-            nodesWithDesiredSpeed);
+            nodesWithDesiredSpeed, in.worldBboxMin, in.worldBboxMax);
 
 #if 0
         std::cout << " cur : " << nodeGridCoords(current.state.pose).asString()
@@ -321,6 +328,10 @@ PlannerOutput TPS_Astar::plan(const PlannerInput& in)
             newEdge.ptgFinalRelativeGoal =
                 in.stateGoal.asSE2KinState().pose - current.state.pose;
 
+#if MRPT_VERSION >= 0x20e02  // >=2.14.2
+            newEdge.ptgInternalState =
+                ptg.getCurrentNavDynamicState().internalState;
+#endif
             newEdge.stateFrom = current.state;
             newEdge.stateTo   = x_i;
 
@@ -500,6 +511,19 @@ cost_t TPS_Astar::default_heuristic_R2(
     return distR2 + params_.heuristic_heading_weight * distHeading;
 }
 
+TPS_Astar::Node& TPS_Astar::getOrCreateNodeByPose(
+    const SE2_KinState& p, mrpt::graphs::TNodeID& nextFreeId)
+{
+    auto& n = grid_[NodeCoords(nodeGridCoords(p.pose))];
+
+    if (!n.id.has_value())
+    {
+        n.id    = nextFreeId++;
+        n.state = p;
+    }
+    return n;
+}
+
 cost_t TPS_Astar::default_heuristic(
     const SE2_KinState& from, const SE2orR2_KinState& goal) const
 {
@@ -517,7 +541,9 @@ TPS_Astar::list_paths_to_neighbors_t
         const SE2orR2_KinState&                         goalState,
         const std::vector<mrpt::maps::CPointsMap::Ptr>& globalObstacles,
         double                            MAX_XY_OBSTACLES_CLIPPING_DIST,
-        const nodes_with_desired_speed_t& nodesWithSpeed)
+        const nodes_with_desired_speed_t& nodesWithSpeed,
+        const mrpt::math::TPose2D&        worldBboxMin,
+        const mrpt::math::TPose2D&        worldBboxMax)
 {
     mrpt::system::CTimeLoggerEntry tle(profiler_(), "find_feasible");
 
@@ -529,17 +555,19 @@ TPS_Astar::list_paths_to_neighbors_t
 
     const auto relGoal = goalState.asSE2KinState().pose - from.state.pose;
 
-    const double halfCell = grid_.getResolutionXY() * 0.5;
+    const double halfCell = params_.grid_resolution_xy * 0.5;
 
     // local obstacles as seen from this "from" pose:
     const auto localObstacles = cached_local_obstacles(
         from.state.pose, globalObstacles, MAX_XY_OBSTACLES_CLIPPING_DIST);
 
     // If two PTGs reach the same cell, keep the shortest/best:
-    std::map<absolute_cell_index_t, path_to_neighbor_t> bestPaths;
+    std::unordered_map<NodeCoords, path_to_neighbor_t, NodeCoordsHash>
+        bestPaths;
 
+#if 0
     size_t totalConsidered = 0, totalCollided = 0;
-
+#endif
     // For each PTG:
     for (size_t ptgIdx = 0; ptgIdx < trs.ptgs.size(); ptgIdx++)
     {
@@ -682,7 +710,9 @@ TPS_Astar::list_paths_to_neighbors_t
         {
             const auto& tpsPt = tpsPointsToConsider[tpsPtIdx];
 
+#if 0
             totalConsidered++;
+#endif
 
             // solution is a no-motion: skip.
             if (tpsPt.step == 0) continue;
@@ -697,12 +727,12 @@ TPS_Astar::list_paths_to_neighbors_t
             const auto absPose         = from.state.pose + relReconstrPose;
 
             // out of lattice limits?
-            if (absPose.x < grid_.getXMin() || absPose.y < grid_.getYMin() ||
-                absPose.phi < grid_.getPhiMin())
+            if (absPose.x < worldBboxMin.x || absPose.y < worldBboxMin.y ||
+                absPose.phi < worldBboxMin.phi)
                 continue;
-            if (absPose.x > grid_.getXMax() - halfCell ||
-                absPose.y > grid_.getYMax() - halfCell ||
-                absPose.phi > grid_.getPhiMax())
+            if (absPose.x > worldBboxMax.x - halfCell ||
+                absPose.y > worldBboxMax.y - halfCell ||
+                absPose.phi > worldBboxMax.phi)
                 continue;
 
             const NodeCoords nc = nodeGridCoords(absPose);
@@ -720,7 +750,9 @@ TPS_Astar::list_paths_to_neighbors_t
             {
                 // we would need to move farther away than what is possible
                 // without colliding: discard this trajectory.
+#if 0
                 totalCollided++;
+#endif
                 continue;
             }
 
@@ -748,7 +780,7 @@ TPS_Astar::list_paths_to_neighbors_t
             // ok, it's a good potential path, add it.
             // It will be later on scored by the A* algo.
 
-            auto& path = bestPaths[nodeCoordsToAbsIndex(nc)];
+            auto& path = bestPaths[nc];
 
             // Ok, it's a valid new neighbor with this PTG.
             // Is it shorter with this PTG than with others?
