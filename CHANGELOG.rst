@@ -2,6 +2,11 @@
 Changelog for package mrpt_path_planning
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.2.1 (2024-10-14)
+------------------
+* costmaps for rviz API
+* Contributors: Jose Luis Blanco-Claraco
+
 0.2.0 (2024-10-05)
 ------------------
 * Add support for new PTGs with internalState in MRPT >=2.14.2
